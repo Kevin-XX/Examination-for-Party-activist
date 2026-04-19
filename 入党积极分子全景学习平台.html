@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026入党积极分子考核全景学习平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .option-btn { transition: all 0.2s; }
+        .option-btn.selected-correct { background-color: #dcfce7; border-color: #22c55e; color: #166534; }
+        .option-btn.selected-wrong { background-color: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        .option-btn.reveal-correct { background-color: #dcfce7; border-color: #22c55e; color: #166534; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Sidebar / Bottom Nav -->
+    <nav class="bg-red-700 text-white w-full md:w-64 flex-shrink-0 z-20 flex flex-row md:flex-col shadow-lg order-2 md:order-1 relative">
+        <div class="hidden md:block p-6 border-b border-red-600">
+            <h1 class="text-xl font-bold tracking-wider leading-tight">&#x1F3DB; 入党积极分子<br><span class="text-sm font-normal text-red-200">2026 考核题库</span></h1>
+        </div>
+        <div class="flex flex-row md:flex-col w-full overflow-x-auto md:overflow-visible p-2 md:p-4 space-x-2 md:space-x-0 md:space-y-2">
+            <button onclick="app.switchView('dashboard')" id="nav-dashboard" class="nav-btn flex-1 md:w-full text-center md:text-left px-3 py-3 md:px-4 rounded-lg bg-red-800 font-medium transition-colors hover:bg-red-600 flex flex-col md:flex-row items-center justify-center md:justify-start">
+                <span class="text-xl md:mr-3 mb-1 md:mb-0">&#x1F4CA;</span> <span class="text-xs md:text-base whitespace-nowrap">学习总览</span>
+            </button>
+            <button onclick="app.switchView('mcq')" id="nav-mcq" class="nav-btn flex-1 md:w-full text-center md:text-left px-3 py-3 md:px-4 rounded-lg transition-colors hover:bg-red-600 flex flex-col md:flex-row items-center justify-center md:justify-start">
+                <span class="text-xl md:mr-3 mb-1 md:mb-0">&#x2714;&#xFE0F;</span> <span class="text-xs md:text-base whitespace-nowrap">单选专练</span>
+            </button>
+            <button onclick="app.switchView('subjective')" id="nav-subjective" class="nav-btn flex-1 md:w-full text-center md:text-left px-3 py-3 md:px-4 rounded-lg transition-colors hover:bg-red-600 flex flex-col md:flex-row items-center justify-center md:justify-start">
+                <span class="text-xl md:mr-3 mb-1 md:mb-0">&#x1F4DD;</span> <span class="text-xs md:text-base whitespace-nowrap">主观题库</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 order-1 md:order-2 w-full max-w-7xl mx-auto pb-24 md:pb-8">
+        
+        <!-- View: Dashboard -->
+        <section id="view-dashboard" class="view-section active">
+            <header class="mb-8 border-b-2 border-slate-200 pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">学习进度总览</h2>
+                <p class="text-slate-600 text-sm md:text-base">欢迎进入2026年题库系统。本板块展示了题库的知识结构分布。请在下方导航切换至“单选专练”进行客观题刷题，或进入“主观题库”背诵简答与论述要点。</p>
+            </header>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">题库知识点分布 (共100题)</h3>
+                    <div class="chart-container">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-t-4 border-t-red-600">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">考核结构解析</h3>
+                        <p class="text-sm text-slate-600 mb-4">本次考核注重理论与时政的结合，题型覆盖全面：</p>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between p-3 bg-slate-50 rounded">
+                                <span class="font-medium">&#x2714;&#xFE0F; 单项选择题</span>
+                                <span class="text-xs font-bold bg-slate-200 px-2 py-1 rounded text-slate-700">100题备选 / 考50题 (50分)</span>
+                            </li>
+                            <li class="flex items-center justify-between p-3 bg-slate-50 rounded">
+                                <span class="font-medium">&#x2753; 简答题</span>
+                                <span class="text-xs font-bold bg-slate-200 px-2 py-1 rounded text-slate-700">6题备选 / 考3题 (30分)</span>
+                            </li>
+                            <li class="flex items-center justify-between p-3 bg-slate-50 rounded">
+                                <span class="font-medium">&#x270D;&#xFE0F; 论述题</span>
+                                <span class="text-xs font-bold bg-slate-200 px-2 py-1 rounded text-slate-700">4题备选 / 考2题 (20分)</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-red-600 to-red-800 text-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-lg font-bold mb-2">学习建议</h3>
+                        <p class="text-sm opacity-90 leading-relaxed">
+                            建议首先通过“单选专练”模块，利用碎步时间刷题，系统自带即时判卷功能。对于时政部分，需重点关注“十四五/十五五”规划、新质生产力等核心考点。最后集中攻克主观题。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: MCQ -->
+        <section id="view-mcq" class="view-section">
+            <header class="mb-6 border-b-2 border-slate-200 pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">单项选择题专练</h2>
+                <p class="text-slate-600 text-sm md:text-base">点击选项进行作答，系统将实时判定对错。您可以通过下方分类标签切换不同的知识模块。</p>
+            </header>
+
+            <div class="flex flex-wrap gap-2 mb-6" id="category-tabs">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="flex justify-between items-center mb-4 text-sm font-medium text-slate-500">
+                <span id="current-category-title">正在加载...</span>
+                <span id="category-progress">0/0</span>
+            </div>
+
+            <div id="mcq-container" class="space-y-6">
+                <!-- Questions populated by JS -->
+            </div>
+        </section>
+
+        <!-- View: Subjective -->
+        <section id="view-subjective" class="view-section">
+            <header class="mb-8 border-b-2 border-slate-200 pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">主观题背诵库</h2>
+                <p class="text-slate-600 text-sm md:text-base">包含6道简答题与4道论述题。点击题目展开参考答案要点，建议采用“关键词法”进行记忆。</p>
+            </header>
+
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-red-700 mb-4 border-l-4 border-red-600 pl-3">简答题 (六选三)</h3>
+                <div class="space-y-3" id="saq-container">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold text-red-700 mb-4 border-l-4 border-red-600 pl-3">论述题 (四选二)</h3>
+                <div class="space-y-3" id="essay-container">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // 核心数据模型 (包含完整的100道单选题和主观题)
+        const rawData = {
+            mcqCategories: [
+                { id: 'cat1', name: '党的性质与指导思想 (1-15题)', range: [1, 15] },
+                { id: 'cat2', name: '党史重大事件 (16-40题)', range: [16, 40] },
+                { id: 'cat3', name: '党章与党员权利 (41-60题)', range: [41, 60] },
+                { id: 'cat4', name: '新时代党建 (61-80题)', range: [61, 80] },
+                { id: 'cat5', name: '2026时事政治 (81-100题)', range: [81, 100] }
+            ],
+            mcqs: [
+                // 第一部分：1-15题
+                [1, "中国共产党是中国工人阶级的先锋队，同时是（ ），是中国特色社会主义事业的领导核心。", ["A. 中国农民的先锋队", "B. 中国人民和中华民族的先锋队", "C. 中国知识分子的先锋队"], 1, 'cat1'],
+                [2, "中国共产党的根本宗旨是（ ）。", ["A. 实现共产主义", "B. 全心全意为人民服务", "C. 建设社会主义现代化强国"], 1, 'cat1'],
+                [3, "中国共产党的最高理想和最终目标是（ ）。", ["A. 建成小康社会", "B. 实现共同富裕", "C. 实现共产主义"], 2, 'cat1'],
+                [4, "中国共产党以马克思列宁主义、毛泽东思想、邓小平理论、“三个代表”重要思想、科学发展观、（ ）作为自己的行动指南。", ["A. 新时代中国特色社会主义思想", "B. 习近平新时代中国特色社会主义思想", "C. 新时代中国特色社会理论体系"], 1, 'cat1'],
+                [5, "党在社会主义初级阶段的基本路线是：以经济建设为中心，坚持四项基本原则，坚持（ ），自力更生，艰苦创业...", ["A. 改革开放", "B. 创新发展", "C. 从严治党"], 0, 'cat1'],
+                [6, "“四个意识”是指政治意识、大局意识、核心意识和（ ）。", ["A. 纪律意识", "B. 看齐意识", "C. 责任意识"], 1, 'cat1'],
+                [7, "“四个自信”是指道路自信、理论自信、制度自信和（ ）。", ["A. 文化自信", "B. 历史自信", "C. 民族自信"], 0, 'cat1'],
+                [8, "“两个维护”是指坚决维护习近平总书记党中央的核心、全党的核心地位，坚决维护（ ）。", ["A. 党中央权威和集中统一领导", "B. 党的团结和统一", "C. 国家主权和领土完整"], 0, 'cat1'],
+                [9, "中国共产党人的初心和使命是（ ）。", ["A. 为中国人民谋幸福，为中华民族谋复兴", "B. 实现国家富强，民族振兴", "C. 全面建成小康社会"], 0, 'cat1'],
+                [10, "党的思想路线是一切从实际出发，理论联系实际，实事求是，在实践中检验真理和发展真理。其中核心是（ ）。", ["A. 一切从实际出发", "B. 实事求是", "C. 理论联系实际"], 1, 'cat1'],
+                [11, "发展党员，必须把（ ）放在首位，经过党的支部，坚持个别吸收的原则。", ["A. 政治标准", "B. 业务能力", "C. 群众基础"], 0, 'cat1'],
+                [12, "申请入党的人，要填写入党志愿书，要有（ ）名正式党员作介绍人。", ["A. 1", "B. 2", "C. 3"], 1, 'cat1'],
+                [13, "预备党员的预备期为（ ）。", ["A. 半年", "B. 一年", "C. 两年"], 1, 'cat1'],
+                [14, "党员的党龄，从（ ）之日算起。", ["A. 递交入党申请书", "B. 成为预备党员", "C. 预备期满转为正式党员"], 2, 'cat1'],
+                [15, "每个党员必须编入党的一个支部、小组或其他特定组织，参加党的（ ），接受监督。", ["A. 组织生活", "B. 民主生活", "C. 学习活动"], 0, 'cat1'],
+                
+                // 第二部分：16-40题
+                [16, "标志着中国新民主主义革命开端的历史事件是（ ）。", ["A. 辛亥革命", "B. 五四运动", "C. 中国共产党成立"], 1, 'cat2'],
+                [17, "中国共产党第一次全国代表大会于（ ）在上海召开，宣告了中国共产党的成立。", ["A. 1921年7月1日", "B. 1921年7月23日", "C. 1921年8月1日"], 1, 'cat2'],
+                [18, "中国共产党第二次全国代表大会提出了（ ）的民主革命纲领。", ["A. 推翻清政府", "B. 反帝反封建", "C. 建立共和国"], 1, 'cat2'],
+                [19, "1927年8月1日，中国共产党领导的武装反抗国民党反动派的第一枪是（ ）。", ["A. 秋收起义", "B. 广州起义", "C. 南昌起义"], 2, 'cat2'],
+                [20, "1935年1月召开的（ ），确立了毛泽东在红军和党中央的领导地位，是生死攸关的转折点。", ["A. 古田会议", "B. 遵义会议", "C. 瓦窑堡会议"], 1, 'cat2'],
+                [21, "1936年10月，红军三大主力在（ ）会师，标志着长征胜利结束。", ["A. 陕北吴起镇", "B. 甘肃会宁", "C. 四川懋功"], 1, 'cat2'],
+                [22, "确立毛泽东思想为党的指导思想并写入党章的会议是（ ）。", ["A. 中共六大", "B. 中共七大", "C. 中共八大"], 1, 'cat2'],
+                [23, "1949年10月1日，中华人民共和国成立，标志着中国（ ）的基本结束。", ["A. 旧民主主义革命", "B. 新民主主义革命", "C. 社会主义革命"], 1, 'cat2'],
+                [24, "1956年，随着社会主义改造的基本完成，中国进入了（ ）。", ["A. 新民主主义社会", "B. 社会主义社会", "C. 共产主义社会"], 1, 'cat2'],
+                [25, "1978年12月召开的（ ），作出了把党和国家工作中心转移到经济建设上来、实行改革开放的历史性决策。", ["A. 十一届三中全会", "B. 十二大", "C. 十三大"], 0, 'cat2'],
+                [26, "1992年，邓小平同志发表南方谈话，明确提出（ ）也是生产力。", ["A. 科学技术", "B. 管理创新", "C. 资本运作"], 0, 'cat2'],
+                [27, "2001年7月13日，北京成功申办（ ）奥运会。", ["A. 2008年第29届", "B. 2012年第30届", "C. 2022年冬奥会"], 0, 'cat2'],
+                [28, "党的十八大报告首次提出建设（ ）。", ["A. 美丽中国", "B. 和谐社会", "C. 生态文明"], 0, 'cat2'],
+                [29, "2020年，我国完成了新时代脱贫攻坚目标任务，消除了（ ）。", ["A. 相对贫困", "B. 绝对贫困", "C. 区域贫困"], 1, 'cat2'],
+                [30, "2021年7月1日，庆祝中国共产党成立（ ）大会在北京天安门广场隆重举行。", ["A. 90周年", "B. 100周年", "C. 110周年"], 1, 'cat2'],
+                [31, "井冈山革命根据地的建立，开辟了（ ）的革命道路。", ["A. 城市包围农村", "B. 农村包围城市、武装夺取政权", "C. 国共合作"], 1, 'cat2'],
+                [32, "1945年8月15日日本无条件投降。抗战胜利纪念日定为每年的（ ）。", ["A. 8月15日", "B. 9月3日", "C. 9月18日"], 1, 'cat2'],
+                [33, "1950年10月，中国人民志愿军赴朝作战，拉开了（ ）的序幕。", ["A. 解放战争", "B. 抗美援朝战争", "C. 对越自卫反击战"], 1, 'cat2'],
+                [34, "1964年10月16日，我国第一颗（ ）爆炸成功。", ["A. 氢弹", "B. 原子弹", "C. 人造卫星"], 1, 'cat2'],
+                [35, "1970年4月24日，我国第一颗人造地球卫星（ ）发射成功。", ["A. 神舟一号", "B. 东方红一号", "C. 嫦娥一号"], 1, 'cat2'],
+                [36, "1979年1月1日，全国人大常委会发表（ ），宣布采用和平方式统一祖国的方针。", ["A. 《告台湾同胞书》", "B. 《和平统一方针》", "C. 《反分裂国家法》"], 0, 'cat2'],
+                [37, "1997年7月1日，中国政府对（ ）恢复行使主权。", ["A. 澳门", "B. 香港", "C. 台湾"], 1, 'cat2'],
+                [38, "1999年12月20日，中国政府对（ ）恢复行使主权。", ["A. 香港", "B. 澳门", "C. 九龙"], 1, 'cat2'],
+                [39, "2003年10月15日，（ ）成为中国首位进入太空的航天员。", ["A. 翟志刚", "B. 杨利伟", "C. 费俊龙"], 1, 'cat2'],
+                [40, "党的二十大报告提出，为全面建设社会主义现代化国家、全面推进（ ）而团结奋斗。", ["A. 中华民族伟大复兴", "B. 共同富裕", "C. 人类命运共同体"], 0, 'cat2'],
+
+                // 第三部分：41-60题
+                [41, "年满（ ）的先进分子，承认党的纲领和章程，可以申请加入中国共产党。", ["A. 16周岁", "B. 18周岁", "C. 20周岁"], 1, 'cat3'],
+                [42, "党员无正当理由，连续（ ）不参加党的组织生活，或不交纳党费，就被认为是自行脱党。", ["A. 3个月", "B. 6个月", "C. 1年"], 1, 'cat3'],
+                [43, "党组织讨论决定问题，必须执行（ ）的原则。", ["A. 少数服从多数", "B. 下级服从上级", "C. 个人服从组织"], 0, 'cat3'],
+                [44, "党员发表超出党组织已有决定的重要主张，必须（ ）。", ["A. 自行决定", "B. 提交党组织讨论或向上级请示", "C. 征求群众意见"], 1, 'cat3'],
+                [45, "党的全国代表大会每（ ）举行一次。", ["A. 三年", "B. 四年", "C. 五年"], 2, 'cat3'],
+                [46, "党的中央委员会全体会议每年至少举行（ ）次。", ["A. 一", "B. 两", "C. 三"], 0, 'cat3'],
+                [47, "基层单位凡是有正式党员（ ）以上的，都应当成立党的基层组织。", ["A. 3人", "B. 5人", "C. 7人"], 0, 'cat3'],
+                [48, "党的基层委员会、总支部委员会、支部委员会每届任期一般为（ ）。", ["A. 2-3年", "B. 3-5年", "C. 5-7年"], 1, 'cat3'],
+                [49, "党员享有表决权、选举权和（ ）。", ["A. 被选举权", "B. 建议权", "C. 批评权"], 0, 'cat3'],
+                [50, "党员在留党察看期间没有（ ）。", ["A. 表决权、选举权和被选举权", "B. 发言权", "C. 申诉权"], 0, 'cat3'],
+                [51, "党的纪律处分有五种：警告、严重警告、撤销党内职务、留党察看、（ ）。", ["A. 开除公职", "B. 开除党籍", "C. 移送司法"], 1, 'cat3'],
+                [52, "留党察看最长不超过（ ）。", ["A. 一年", "B. 两年", "C. 三年"], 1, 'cat3'],
+                [53, "对于严重违犯党纪、本身又不能纠正的党组织领导机构，应当予以（ ）。", ["A. 改组", "B. 解散", "C. 重组"], 0, 'cat3'],
+                [54, "党员受到开除党籍处分，（ ）内不得重新入党。", ["A. 三年", "B. 四年", "C. 五年"], 2, 'cat3'],
+                [55, "党的各级领导干部必须信念坚定、为民服务、勤政务实、敢于担当、（ ）。", ["A. 清正廉洁", "B. 遵纪守法", "C. 作风优良"], 0, 'cat3'],
+                [56, "党的干部是党的事业的骨干，是人民的（ ）。", ["A. 领导者", "B. 公仆", "C. 管理者"], 1, 'cat3'],
+                [57, "党支部担负直接教育、管理、监督党员和组织、宣传、凝聚群众、（ ）的职责。", ["A. 服务群众", "B. 领导群众", "C. 帮助群众"], 0, 'cat3'],
+                [58, "发展党员工作的总要求是：控制总量、优化结构、提高质量、（ ）。", ["A. 发挥作用", "B. 扩大影响", "C. 加强管理"], 0, 'cat3'],
+                [59, "预备党员的权利，除了没有（ ）以外，同正式党员一样。", ["A. 表决权、选举权和被选举权", "B. 知情权", "C. 建议权"], 0, 'cat3'],
+                [60, "党员必须自觉遵守党的纪律，首先是党的（ ）和政治规矩。", ["A. 组织纪律", "B. 政治纪律", "C. 廉洁纪律"], 1, 'cat3'],
+
+                // 第四部分：61-80题
+                [61, "新时代党的建设总要求中，以（ ）为统领。", ["A. 党的思想建设", "B. 党的政治建设", "C. 党的组织建设"], 1, 'cat4'],
+                [62, "“五位一体”总体布局是指经济建设、政治建设、文化建设、社会建设和（ ）。", ["A. 生态文明建设", "B. 制度建设", "C. 法治建设"], 0, 'cat4'],
+                [63, "“四个全面”战略布局是指全面建设现代化国家、全面深化改革、全面依法治国、（ ）。", ["A. 全面从严治党", "B. 全面共同富裕", "C. 全面乡村振兴"], 0, 'cat4'],
+                [64, "中国式现代化的本质要求包含推动构建人类命运共同体，（ ）。", ["A. 创造人类文明新形态", "B. 实现民族复兴", "C. 建设现代化强国"], 0, 'cat4'],
+                [65, "党的二十大报告指出，（ ）是全面建设社会主义现代化国家的首要任务。", ["A. 高质量发展", "B. 科技创新", "C. 改革开放"], 0, 'cat4'],
+                [66, "全党必须牢记，（ ）是坚持和发展中国特色社会主义的必由之路。", ["A. 坚持党的全面领导", "B. 中国特色社会主义", "C. 团结奋斗"], 0, 'cat4'],
+                [67, "伟大的建党精神包括：坚持真理、坚守理想，践行初心、担当使命，不怕牺牲、英勇斗争，（ ）。", ["A. 对党忠诚、不负人民", "B. 艰苦奋斗、自强不息", "C. 实事求是、勇于创新"], 0, 'cat4'],
+                [68, "新时代好干部标准是：信念坚定、为民服务、勤政务实、敢于担当、（ ）。", ["A. 清正廉洁", "B. 德才兼备", "C. 以德为先"], 0, 'cat4'],
+                [69, "我国宪法规定，中华人民共和国的根本制度是（ ）。", ["A. 人民代表大会制度", "B. 社会主义制度", "C. 民主集中制"], 1, 'cat4'],
+                [70, "我国宪法规定，中华人民共和国的一切权力属于（ ）。", ["A. 公民", "B. 人民", "C. 工人阶级"], 1, 'cat4'],
+                [71, "社会主义核心价值观在国家层面的价值目标是：富强、民主、文明、（ ）。", ["A. 和谐", "B. 自由", "C. 公正"], 0, 'cat4'],
+                [72, "社会主义核心价值观在社会层面的价值取向是：自由、平等、公正、（ ）。", ["A. 法治", "B. 爱国", "C. 敬业"], 0, 'cat4'],
+                [73, "社会主义核心价值观在公民个人层面的价值准则是：爱国、敬业、诚信、（ ）。", ["A. 友善", "B. 奉献", "C. 守法"], 0, 'cat4'],
+                [74, "2026年是“十四五”规划实施的收官之年，也是谋划“（ ）”规划的关键之年。", ["A. 十五五", "B. 十六五", "C. 十三五"], 0, 'cat4'],
+                [75, "乡村振兴战略的总要求是：产业兴旺、生态宜居、乡风文明、治理有效、（ ）。", ["A. 生活富裕", "B. 生产发展", "C. 村容整洁"], 0, 'cat4'],
+                [76, "新发展理念是指：创新、协调、绿色、开放、（ ）。", ["A. 共享", "B. 合作", "C. 共赢"], 0, 'cat4'],
+                [77, "进一步全面深化改革的总目标是继续完善和发展中国特色社会主义制度，推进（ ）。", ["A. 国家治理体系和治理能力现代化", "B. 经济体制改革", "C. 政治体制改革"], 0, 'cat4'],
+                [78, "当前我国社会主要矛盾已经转化为人民日益增长的美好生活需要和（ ）之间的矛盾。", ["A. 不平衡不充分的发展", "B. 落后的社会生产", "C. 物质文化需求"], 0, 'cat4'],
+                [79, "坚持总体国家安全观，要以（ ）为宗旨。", ["A. 人民安全", "B. 政治安全", "C. 经济安全"], 0, 'cat4'],
+                [80, "构建人类命运共同体理念，倡导建设持久和平、普遍安全、共同繁荣、开放包容、（ ）的世界。", ["A. 清洁美丽", "B. 绿色环保", "C. 和谐共生"], 0, 'cat4'],
+
+                // 第五部分：81-100题 (2026时政)
+                [81, "2026年是中华人民共和国国民经济和社会发展第____个五年规划（“十四五”规划）的收官之年，也是谋划第____个五年规划的关键之年。", ["A. 十三；十四", "B. 十四；十五", "C. 十五；十六"], 1, 'cat5'],
+                [82, "根据党的二十大部署，到____年，我国基本实现社会主义现代化。", ["A. 2025", "B. 2030", "C. 2035"], 2, 'cat5'],
+                [83, "2026年经济工作的首要任务仍然是推动____，坚持以科技创新引领现代化产业体系建设。", ["A. 高速增长", "B. 高质量发展", "C. 规模扩张"], 1, 'cat5'],
+                [84, "2026年，中国将继续深化共建“一带一路”。截至2026年，倡议已提出____周年。", ["A. 10", "B. 12", "C. 13"], 2, 'cat5'],
+                [85, "预计“十四五”期间我国在____领域取得决定性进展，标志该战略目标全面达成。", ["A. 脱贫攻坚", "B. 碳达峰", "C. 科技自立自强与关键核心技术攻关"], 2, 'cat5'],
+                [86, "党的二十届三中全会主要聚焦的主题是____。", ["A. 全面从严治党", "B. 进一步全面深化改革、推进中国式现代化", "C. 乡村振兴战略"], 1, 'cat5'],
+                [87, "2026年，我国航天事业计划完成____空间站的应用与发展阶段多项重大任务。", ["A. 天宫", "B. 神舟", "C. 嫦娥"], 0, 'cat5'],
+                [88, "关于2026年的国防和军队建设，目标是确保实现____奋斗目标。", ["A. 建军一百年", "B. 建国一百年", "C. 建党一百年"], 0, 'cat5'],
+                [89, "2026年，我国继续坚持____的总基调，加快构建新发展格局。", ["A. 快速发展", "B. 稳中求进", "C. 激进改革"], 1, 'cat5'],
+                [90, "在2026年的国际形势下，中国倡导的全球治理观是____。", ["A. 霸权稳定论", "B. 共商共建共享", "C. 零和博弈"], 1, 'cat5'],
+                [91, "2025-2026年，我国绿色转型持续推进，为实现____年碳达峰目标打下决定性基础。", ["A. 2025", "B. 2030", "C. 2060"], 1, 'cat5'],
+                [92, "2026年，中央一号文件连续第____年聚焦“三农”问题。", ["A. 20", "B. 23", "C. 25"], 1, 'cat5'],
+                [93, "面对复杂严峻的国际环境，2026年我国强调要着力扩大____。", ["A. 出口需求", "B. 国内需求", "C. 政府投资"], 1, 'cat5'],
+                [94, "2026年，继续完善____制度，这是全过程人民民主的重要实现形式。", ["A. 多党合作和政治协商", "B. 基层群众自治", "C. 民族区域自治"], 0, 'cat5'],
+                [95, "针对人口发展新常态，2026年国家政策重点在于建立____支持体系。", ["A. 养老保障", "B. 生育", "C. 教育公平"], 1, 'cat5'],
+                [96, "2026年，在数字经济领域，重点推动____与实体经济深度融合。", ["A. 人工智能", "B. 大数据", "C. 互联网"], 0, 'cat5'],
+                [97, "关于祖国统一大业，我们坚持方针，坚决反对____和外部势力干涉。", ["A. “台独”分裂行径", "B. 两岸经贸往来", "C. 民间文化交流"], 0, 'cat5'],
+                [98, "2026年，我国法治建设的重点是围绕____，全面推进科学立法等。", ["A. 宪法实施", "B. 民法典普及", "C. 中国式现代化"], 2, 'cat5'],
+                [99, "中国高质量共建“一带一路”进入____新阶段。", ["A. 起步探索", "B. 深耕细作", "C. 收缩调整"], 1, 'cat5'],
+                [100, "主题教育重点围绕用____凝心铸魂，引导拥护“两个确立”。", ["A. 党的创新理论", "B. 党史知识", "C. 业务技能"], 0, 'cat5']
+            ],
+            saq: [
+                { q: "什么是“新质生产力”？作为入党积极分子，如何在推动新质生产力发展中发挥作用？", a: "<b>概念解释：</b>新质生产力是创新起主导作用，摆脱传统经济增长方式、生产力发展路径，具有高科技、高效能、高质量特征，符合新发展理念的先进生产力质态。它由技术革命性突破、生产要素创新性配置、产业深度转型升级而催生。<br><br><b>如何发挥作用：</b><br>1.加强学习：努力学习科学文化知识和专业技能，提升创新思维和能力。<br>2.立足岗位：在工作中勇于探索新技术、新工艺、新模式，争做创新先锋。<br>3.宣传引导：积极宣传新发展理念，带动身边人转变观念，支持改革创新。<br>4.实干担当：将个人理想融入国家发展大局，在关键领域和急难险重任务中冲锋在前。" },
+                { q: "请简述伟大建党精神的内涵，并谈谈其时代价值。", a: "<b>内涵（32字）：</b>坚持真理、坚守理想。践行初心、担当使命。不怕牺牲、英勇斗争。对党忠诚、不负人民。<br><br><b>时代价值：</b>它是中国共产党人精神谱系的源头，为新时代党的建设提供了强大精神动力。激励全党全国各族人民在推进中国式现代化进程中，面对困难敢于斗争，面对挑战勇毅前行。教育引导广大党员牢记初心使命，始终保持同人民群众的血肉联系，为实现中华民族伟大复兴而奋斗。" },
+                { q: "2026年是“十四五”规划收官之年，结合当前形势，谈谈你对“高质量发展”的理解。", a: "<b>基本定义：</b>高质量发展是全面建设社会主义现代化国家的首要任务。它不仅仅是经济总量的增长，更是体现新发展理念（创新、协调、绿色、开放、共享）的发展。<br><br><b>核心特征：</b><br>1.创新驱动：从要素驱动转向创新驱动，解决“卡脖子”技术问题。<br>2.协调平衡：城乡区域协调发展，物质文明与精神文明相协调。<br>3.绿色底色：人与自然和谐共生，推动碳达峰碳中和。<br>4.开放共赢：构建高水平对外开放新格局。<br>5.共享成果：全体人民共同富裕，满足人民日益增长的美好生活需要。" },
+                { q: "预备党员与正式党员在权利和义务上有什么异同？", a: "<b>相同点：</b>预备党员必须履行党章规定的党员义务（共8项），在参加组织生活、缴纳党费、执行党的决议等方面要求与正式党员完全一致。<br><br><b>不同点（核心在权利上）：</b><br>正式党员享有表决权、选举权和被选举权。预备党员没有表决权、选举权和被选举权。除此之外，预备党员的其他权利（如申辩权、建议权等）与正式党员相同。<br>目的：这是为了确保新党员在转为正式党员前，经过更严格的考察和教育，保证党员质量。" },
+                { q: "党的三大优良作风是什么？", a: "理论联系实际、密切联系群众、批评与自我批评。" },
+                { q: "党的纪律处分有哪几种？", a: "党的纪律处分有五种：警告、严重警告、撤销党内职务、留党察看、开除党籍。" }
+            ],
+            essays: [
+                { q: "作为一名入党积极分子，你如何理解\"组织上入党一生一次，思想上入党一生一世\"这句话？请结合个人成长经历，谈谈你将如何在日常工作和生活中践行\"思想上入党\"的要求。", a: "<b>答题框架：</b><br>1. <b>破题（理解内涵）：</b>组织入党是程序上的跨越，是外在的形式，一生只有一次。而思想入党是信念的淬炼，是内在灵魂的升华，是一辈子的终生课题。这意味着不能仅仅满足于身份的转变，更要实现思想觉悟的持久提升。<br>2. <b>结合个人经历：</b>（此处需结合您自身实际，如曾经遇到挫折时如何受党员事迹鼓舞，或在某次志愿服务中的感悟等）。<br>3. <b>践行要求：</b><br>- 持续加强理论学习（真学真懂，用先进思想武装头脑）。<br>- 时刻对照党员标准要求自己（防微杜渐，从小事做起）。<br>- 发挥先锋模范作用（在急难险重任务和群众需要时挺身而出，吃苦在前，享受在后）。" },
+                { q: "党的二十大报告指出，\"中国式现代化是中国共产党领导的社会主义现代化\"。请论述你对中国式现代化的理解，并说明入党积极分子应如何为推进中国式现代化贡献自己的力量。", a: "<b>答题框架：</b><br>1. <b>理解中国式现代化：</b>它既有各国现代化的共同特征，更有基于自己国情的中国特色。它是人口规模巨大的现代化、全体人民共同富裕的现代化、物质文明和精神文明相协调的现代化、人与自然和谐共生的现代化、走和平发展道路的现代化。党的领导是根本保证。<br>2. <b>如何贡献力量：</b><br>- 坚定“四个自信”，做中国特色社会主义的坚定信仰者。<br>- 苦练本领，立足本职岗位追求卓越，成为专业领域的行家里手。<br>- 积极投身社会实践，关注民生，服务群众，在推进共同富裕和生态文明建设等具体工作中贡献力量。" },
+                { q: "当前，世界百年未有之大变局加速演进，我国发展进入战略机遇和风险挑战并存时期。请论述入党积极分子应如何增强忧患意识、发扬斗争精神，在复杂形势下保持政治定力。", a: "<b>答题框架：</b><br>1. <b>背景认识：</b>当前国际形势错综复杂，国内改革发展稳定任务繁重，战略机遇与风险挑战并存，必须安而不忘危，存而不忘亡，治而不忘乱。<br>2. <b>增强忧患意识：</b>时刻保持清醒头脑，不盲目乐观，对可能出现的风险挑战有底线思维和预判能力。<br>3. <b>发扬斗争精神：</b><br>- 筑牢信仰之基，保持政治定力，在大是大非面前立场坚定。<br>- 不畏难避险，在复杂形势、项目攻坚中敢于“亮剑”，敢于同不良现象作斗争。<br>- 提升斗争本领，加强学习实践，提高防范化解各类风险的能力。" },
+                { q: "2026年是\"十四五\"规划收官之年，也是谋划\"十五五\"规划的关键之年。请结合国家发展战略，论述入党积极分子如何在推动高质量发展、实现科技自立自强中发挥先锋模范作用。", a: "<b>答题框架：</b><br>1. <b>时代背景与意义：</b>科技创新是高质量发展的核心引擎，是突破“卡脖子”难题、实现国家长治久安和经济转型的关键所在。在此关键节点，科技自立自强尤为重要。<br>2. <b>发挥先锋模范作用：</b><br>- 树立创新意识，培养创新思维，敢于打破常规。<br>- 倡导终身学习，不断更新知识结构，紧跟科技发展前沿。<br>- 在本职岗位上积极探索小改小革、技术创新，提高工作效率和质量。<br>- 将个人职业规划主动融入国家宏观发展战略（如数字经济、人工智能融合等）之中，到祖国最需要的地方建功立业。" }
+            ]
+        };
+
+        const state = {
+            activeCategory: 'cat1',
+            userAnswers: {}, 
+            chartInstance: null
+        };
+
+        const app = {
+            init() {
+                this.renderTabs();
+                this.renderSubjective();
+                this.switchCategory(state.activeCategory);
+                this.initChart();
+            },
+
+            switchView(viewId) {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(el => {
+                    el.classList.remove('bg-red-800');
+                    el.classList.add('hover:bg-red-600');
+                });
+                
+                document.getElementById(`view-${viewId}`).classList.add('active');
+                document.getElementById(`nav-${viewId}`).classList.add('bg-red-800');
+                document.getElementById(`nav-${viewId}`).classList.remove('hover:bg-red-600');
+            },
+
+            renderTabs() {
+                const container = document.getElementById('category-tabs');
+                let html = '';
+                rawData.mcqCategories.forEach(cat => {
+                    html += `<button onclick="app.switchCategory('${cat.id}')" id="tab-${cat.id}" class="px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-colors bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">${cat.name}</button>`;
+                });
+                container.innerHTML = html;
+            },
+
+            switchCategory(catId) {
+                state.activeCategory = catId;
+                const catObj = rawData.mcqCategories.find(c => c.id === catId);
+                
+                document.querySelectorAll('#category-tabs button').forEach(btn => {
+                    btn.classList.remove('bg-red-600', 'text-white', 'border-red-600', 'hover:bg-red-700');
+                    btn.classList.add('bg-white', 'text-slate-600');
+                });
+                const activeTab = document.getElementById(`tab-${catId}`);
+                activeTab.classList.remove('bg-white', 'text-slate-600', 'hover:bg-slate-100');
+                activeTab.classList.add('bg-red-600', 'text-white', 'border-red-600', 'hover:bg-red-700');
+
+                document.getElementById('current-category-title').innerText = catObj.name;
+                this.renderMCQs();
+            },
+
+            renderMCQs() {
+                const container = document.getElementById('mcq-container');
+                const filtered = rawData.mcqs.filter(q => q[4] === state.activeCategory);
+                let html = '';
+
+                filtered.forEach((q, index) => {
+                    const qId = q[0];
+                    const qText = q[1];
+                    const options = q[2];
+                    const hasAnswered = state.userAnswers[qId] !== undefined;
+                    
+                    html += `
+                        <div class="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h4 class="text-base md:text-lg font-medium text-slate-800 mb-4"><span class="text-red-600 font-bold mr-1">${qId}.</span> ${qText}</h4>
+                            <div class="space-y-2">
+                    `;
+                    
+                    options.forEach((opt, optIndex) => {
+                        let btnClass = "w-full text-left p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 option-btn";
+                        let iconHtml = "";
+
+                        if (hasAnswered) {
+                            const isSelected = state.userAnswers[qId] === optIndex;
+                            const isCorrect = q[3] === optIndex;
+                            
+                            if (isSelected && isCorrect) {
+                                btnClass += " selected-correct";
+                                iconHtml = " <span class='float-right'>&#x2714;&#xFE0F; 正确</span>";
+                            } else if (isSelected && !isCorrect) {
+                                btnClass += " selected-wrong";
+                                iconHtml = " <span class='float-right'>&#x2716;&#xFE0F; 错误</span>";
+                            } else if (!isSelected && isCorrect) {
+                                btnClass += " reveal-correct";
+                                iconHtml = " <span class='float-right'>&#x2714;&#xFE0F; 正确答案</span>";
+                            }
+                            html += `<button disabled class="${btnClass} cursor-default">${opt}${iconHtml}</button>`;
+                        } else {
+                            html += `<button onclick="app.answerMCQ(${qId}, ${optIndex})" class="${btnClass}">${opt}</button>`;
+                        }
+                    });
+                    
+                    html += `</div></div>`;
+                });
+
+                container.innerHTML = html;
+                this.updateProgress();
+            },
+
+            answerMCQ(qId, selectedIdx) {
+                state.userAnswers[qId] = selectedIdx;
+                this.renderMCQs(); 
+            },
+
+            updateProgress() {
+                const filtered = rawData.mcqs.filter(q => q[4] === state.activeCategory);
+                const answeredInCat = filtered.filter(q => state.userAnswers[q[0]] !== undefined).length;
+                document.getElementById('category-progress').innerText = `进度: ${answeredInCat} / ${filtered.length}`;
+            },
+
+            renderSubjective() {
+                const saqContainer = document.getElementById('saq-container');
+                let saqHtml = '';
+                rawData.saq.forEach((item, idx) => {
+                    saqHtml += `
+                        <details class="bg-white rounded-lg shadow-sm border border-slate-100 group">
+                            <summary class="p-4 font-medium text-slate-800 cursor-pointer list-none flex justify-between items-center hover:bg-slate-50 transition">
+                                <span>${idx + 1}. ${item.q}</span>
+                                <span class="text-red-500 transform group-open:rotate-180 transition-transform">&#x25BC;</span>
+                            </summary>
+                            <div class="p-4 pt-0 text-sm text-slate-700 leading-relaxed border-t border-slate-50 mt-2">
+                                <div class="bg-red-50 p-4 rounded mt-2">${item.a}</div>
+                            </div>
+                        </details>
+                    `;
+                });
+                saqContainer.innerHTML = saqHtml;
+
+                const essayContainer = document.getElementById('essay-container');
+                let essayHtml = '';
+                rawData.essays.forEach((item, idx) => {
+                    essayHtml += `
+                        <details class="bg-white rounded-lg shadow-sm border border-slate-100 group">
+                            <summary class="p-4 font-medium text-slate-800 cursor-pointer list-none flex justify-between items-center hover:bg-slate-50 transition">
+                                <span>${idx + 1}. ${item.q}</span>
+                                <span class="text-red-500 transform group-open:rotate-180 transition-transform">&#x25BC;</span>
+                            </summary>
+                            <div class="p-4 pt-0 text-sm text-slate-700 leading-relaxed border-t border-slate-50 mt-2">
+                                <div class="bg-blue-50 p-4 rounded mt-2">${item.a}</div>
+                            </div>
+                        </details>
+                    `;
+                });
+                essayContainer.innerHTML = essayHtml;
+            },
+
+            initChart() {
+                const ctx = document.getElementById('distributionChart').getContext('2d');
+                const labels = rawData.mcqCategories.map(c => c.name.split(' ')[0]);
+                const data = [15, 25, 20, 20, 20];
+
+                if(this.chartInstance) this.chartInstance.destroy();
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { boxWidth: 12 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) { return ` ${context.label}: ${context.raw}题`; }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
